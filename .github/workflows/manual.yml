@@ -1,0 +1,65 @@
+name: Manual Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: setup branch
+        uses: actions/checkout@v3
+
+      - name: setup keystore
+        run: |
+          mkdir -p android/app/keys
+          echo "${{ secrets.DEBUG_KEYSTORE }}" | base64 --decode > android/app/keys/debug-keystore.jks
+          echo "${{ secrets.DEBUG_KEY_PROPERTIES }}" | base64 --decode > android/debug-key.properties
+          echo "${{ secrets.PROD_KEYSTORE }}" | base64 --decode > android/app/keys/prod-keystore.jks
+          echo "${{ secrets.PROD_KEY_PROPERTIES }}" | base64 --decode > android/key.properties
+          
+      - name: setup java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "zulu"
+          java-version: "12.x"
+          cache: 'gradle'
+
+      - name: setup flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.10.1'
+          channel: 'stable'
+          cache: true
+
+      - name: install firebase cli
+        run: curl -sL https://firebase.tools | bash
+
+      - name: build apk
+        run: flutter build apk --obfuscate --split-debug-info=build/debug_symbols
+
+      - name: save debug symbols
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ format('symbols-{0}', github.run_number) }}
+          path: ./build/debug_symbols
+
+      - name: upload debug symbols
+        run: firebase crashlytics:symbols:upload --app=1:234250293091:android:7132a7f27245cfc073cd56 build/debug_symbols --token ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: deploy artifact to the firebase app distribution 
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: 1:234250293091:android:7132a7f27245cfc073cd56
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          groups: volunteer
+          file: ./build/app/outputs/flutter-apk/app-release.apk 
+
+      - name: save artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: ${{ format('apk-{0}', github.run_number) }}
+          path: ./build/app/outputs/flutter-apk/app-release.apk
+          
+          
+    
