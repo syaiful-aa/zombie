@@ -6,6 +6,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      firebase_app_id: 1:234250293091:android:7132a7f27245cfc073cd56
+      
     steps:
       - name: setup branch
         uses: actions/checkout@v3
@@ -45,12 +48,12 @@ jobs:
           path: ./build/debug_symbols
 
       - name: upload debug symbols
-        run: firebase crashlytics:symbols:upload --app=1:234250293091:android:7132a7f27245cfc073cd56 build/debug_symbols --token ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase crashlytics:symbols:upload --app=$firebase_app_id build/debug_symbols --token ${{ secrets.FIREBASE_TOKEN }}
 
       - name: deploy artifact to the firebase app distribution 
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
-          appId: 1:234250293091:android:7132a7f27245cfc073cd56
+          appId: ${{ env.firebase_app_id }}
           token: ${{ secrets.FIREBASE_TOKEN }}
           groups: volunteer
           file: ./build/app/outputs/flutter-apk/app-release.apk 
