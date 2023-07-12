@@ -41,14 +41,27 @@ class _MainAppState extends State<MainApp> {
     }
   }
 
+  void _triggerMoreException() {
+    try {
+      throw Exception('now panic');
+    } catch (e) {
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        StackTrace.current,
+        reason: 'test send fatal crash',
+        fatal: true,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         body: Center(
           child: TextButton(
-            onPressed: _triggerException,
-            child: const Text('Trigger Send Crash'),
+            onPressed: _triggerMoreException,
+            child: const Text('Trigger Send Fatal Crash'),
           ),
         ),
       ),
